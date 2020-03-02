@@ -117,6 +117,9 @@ class TraceParent(object):
         :param key: header name
         :return: a single string value or None
         """
+        if isinstance(headers, list):
+            # In ASGI headers can be a list of tuples
+            return ",".join(v for k, v in headers if k == key)
         # this works for all known WSGI implementations
         return headers.get(key)
 
