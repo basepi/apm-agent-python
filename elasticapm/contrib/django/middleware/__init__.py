@@ -39,6 +39,7 @@ from django.conf import settings as django_settings
 
 import elasticapm
 from elasticapm.contrib.django.client import client, get_client
+from elasticapm.traces import execution_context
 from elasticapm.utils import build_name_with_http_method_prefix, get_name_from_func, wrapt
 
 try:
@@ -160,6 +161,12 @@ class TracingMiddleware(MiddlewareMixin, ElasticAPMClientMiddlewareMixin):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         request._elasticapm_view_func = view_func
+
+    def process_request(self, request):
+        if hasattr(request, "scope"):
+            scope_transaction = request.scope.get("extensions", {}).get("elasticapm", {}).get("transaction")
+            if not execution_context.get_transaction() and scope_transaction:
+                execution_context.set_transaction(scope_transaction)
 
     def process_response(self, request, response):
         if django_settings.DEBUG and not self.client.config.debug:

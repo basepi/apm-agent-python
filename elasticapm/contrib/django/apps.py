@@ -144,7 +144,13 @@ def _request_started_handler(client, sender, *args, **kwargs):
         trace_parent = TraceParent.from_headers(kwargs["scope"]["headers"])
     else:
         trace_parent = None
-    client.begin_transaction("request", trace_parent=trace_parent)
+    transaction = client.begin_transaction("request", trace_parent=trace_parent)
+
+    if "scope" in kwargs:
+        # For ASGI, save the transaction object in scope:extensions
+        extensions = kwargs["scope"].get("extensions", {})
+        extensions["elasticapm"] = {"transaction": transaction}
+        kwargs["scope"]["extensions"] = extensions
 
 
 def instrument(client):
