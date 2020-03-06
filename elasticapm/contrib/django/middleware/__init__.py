@@ -193,6 +193,8 @@ class TracingMiddleware(MiddlewareMixin, ElasticAPMClientMiddlewareMixin):
                 elasticapm.set_transaction_result("HTTP {}xx".format(response.status_code // 100), override=False)
         except Exception:
             self.client.error_logger.error("Exception during timing of request", exc_info=True)
+        if hasattr(request, "scope"):
+            self.client.end_transaction()
         return response
 
 
