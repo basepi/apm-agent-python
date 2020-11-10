@@ -90,12 +90,23 @@ def register(cls):
 
 _instrumentation_singletons = {}
 
+_new_cls_register = [
+    (
+        "elasticsearch.connection.http_urllib3",
+        "elasticapm.instrumentation.packages.elasticsearch.ElasticsearchConnectionInstrumentation",
+    )
+]
 
-def get_instrumentation_objects():
-    for cls_str in _cls_register:
-        if cls_str not in _instrumentation_singletons:
-            cls = import_string(cls_str)
-            _instrumentation_singletons[cls_str] = cls()
 
-        obj = _instrumentation_singletons[cls_str]
-        yield obj
+def get_instrumentation_classes():
+    for registration in _new_cls_register:
+        yield registration
+
+
+def get_instrumentation_singleton(module, cls_str):
+    if cls_str not in _instrumentation_singletons:
+        cls = import_string(cls_str)
+        _instrumentation_singletons[cls_str] = cls()
+
+    obj = _instrumentation_singletons[cls_str]
+    return obj

@@ -122,15 +122,17 @@ class AbstractInstrumentedModule(object):
 
     def instrument(self):
         if self.instrumented:
-            return
+            return set()
 
         skip_env_var = "SKIP_INSTRUMENT_" + str(self.name.upper())
         if skip_env_var in os.environ:
             logger.debug("Skipping instrumentation of %s. %s is set.", self.name, skip_env_var)
-            return
+            self.instrumented = True
+            return {".".join(x) for x in self.get_instrument_list()}
         try:
             instrument_list = self.get_instrument_list()
             skipped_modules = set()
+            skipped_instrumentations = set()
             instrumented_methods = []
 
             for module, method in instrument_list:
@@ -157,15 +159,18 @@ class AbstractInstrumentedModule(object):
                     # Keep track of modules we couldn't load so we don't
                     # try to instrument anything in that module again
                     skipped_modules.add(module)
+                    skipped_instrumentations.add("{0}.{1}".format(module, method))
                 except AttributeError as ex:
                     # Could not find thing in module
                     logger.debug("Skipping instrumentation of %s.%s: %s", module, method, ex)
+                    skipped_instrumentations.add("{0}.{1}".format(module, method))
             if instrumented_methods:
                 logger.debug("Instrumented %s, %s", self.name, ", ".join(".".join(m) for m in instrumented_methods))
 
         except ImportError as ex:
             logger.debug("Skipping instrumentation of %s. %s", self.name, ex)
         self.instrumented = True
+        return skipped_instrumentations
 
     def uninstrument(self):
         if not self.instrumented or not self.originals:

@@ -31,6 +31,7 @@
 
 import threading
 
+from elasticapm.import_hooks import add_instrumentation
 from elasticapm.instrumentation import register
 
 _lock = threading.Lock()
@@ -38,17 +39,22 @@ _lock = threading.Lock()
 
 def instrument():
     """
-    Instruments all registered methods/functions with a wrapper
+    Add all instrumentation in the register to the import_hooks.instrument_lists
     """
     with _lock:
-        for obj in register.get_instrumentation_objects():
-            obj.instrument()
+        for registration in register.get_instrumentation_classes():
+            add_instrumentation(registration)
 
 
 def uninstrument():
     """
     If present, removes instrumentation and replaces it with the original method/function
+
+    NOTE: This doesn't work properly with the JIT instrumentation
+    from import_hooks
     """
     with _lock:
-        for obj in register.get_instrumentation_objects():
-            obj.uninstrument()
+        for module, cls in register.get_instrumentation_classes():
+            obj = register._instrumentation_singletons.get(cls)
+            if obj:
+                obj.uninstrument()
